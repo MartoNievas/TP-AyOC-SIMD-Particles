@@ -17,13 +17,18 @@
  * v := (v.x + g.x, v.y + g.y)
  * ```
  */
-static void ej_posiciones_c(emitter_t* emitter, vec2_t* gravedad) {
+static void ej_posiciones_c(emitter_t *emitter, vec2_t *gravedad)
+{
 	size_t count = emitter->particles_count;
-	vec2_t* positions = emitter->particles_pos;
-	vec2_t* velocities = emitter->particles_vel;
+	vec2_t *positions = emitter->particles_pos;
+	vec2_t *velocities = emitter->particles_vel;
 
-	for (size_t i = 0; i < count; i++) {
-		// ¡Completar!
+	for (size_t i = 0; i < count; i++)
+	{
+		positions[i].x += velocities[i].x;
+		positions[i].y += velocities[i].y;
+		velocities[i].x += gravedad->x;
+		velocities[i].y += gravedad->y;
 	}
 }
 
@@ -39,7 +44,8 @@ static void ej_posiciones_c(emitter_t* emitter, vec2_t* gravedad) {
  *   s := s - b
  * ```
  */
-static void ej_tamanios_c(emitter_t* emitter, float a, float b, float c) {
+static void ej_tamanios_c(emitter_t *emitter, float a, float b, float c)
+{
 	// ¡Completar!
 }
 
@@ -64,7 +70,8 @@ static void ej_tamanios_c(emitter_t* emitter, float a, float b, float c) {
  *   A = 0
  * ```
  */
-static void ej_colores_c(emitter_t* emitter, SDL_Color a_restar) {
+static void ej_colores_c(emitter_t *emitter, SDL_Color a_restar)
+{
 	// ¡Completar!
 }
 
@@ -78,39 +85,41 @@ static void ej_colores_c(emitter_t* emitter, SDL_Color a_restar) {
  * El ejercicio es implementar una versión del código de ejemplo que utilice
  * SIMD en lugar de operaciones escalares.
  */
-static void ej_orbitar_c(emitter_t* emitter, vec2_t* start, vec2_t* end, float r) {
+static void ej_orbitar_c(emitter_t *emitter, vec2_t *start, vec2_t *end, float r)
+{
 	size_t count = emitter->particles_count;
-	vec2_t* positions = emitter->particles_pos;
+	vec2_t *positions = emitter->particles_pos;
 
-	for (size_t i = 0; i < count; i++) {
+	for (size_t i = 0; i < count; i++)
+	{
 		vec2_t p = positions[i];
 
-		vec2_t ba = { end->x - start->x,
-		              end->y - start->y };
-		vec2_t pa = { p.x    - start->x,
-		              p.y    - start->y };
+		vec2_t ba = {end->x - start->x,
+					 end->y - start->y};
+		vec2_t pa = {p.x - start->x,
+					 p.y - start->y};
 
-		float h = (pa.x * ba.x + pa.y * ba.y)
-		        / (ba.x * ba.x + ba.y * ba.y);
-		if (h < 0) h = 0;
-		if (h > 1) h = 1;
+		float h = (pa.x * ba.x + pa.y * ba.y) / (ba.x * ba.x + ba.y * ba.y);
+		if (h < 0)
+			h = 0;
+		if (h > 1)
+			h = 1;
 
-		vec2_t q = { pa.x - h * ba.x,
-		             pa.y - h * ba.y };
+		vec2_t q = {pa.x - h * ba.x,
+					pa.y - h * ba.y};
 
 		float d = sqrtf(q.x * q.x + q.y * q.y);
 
-		vec2_t delta = { q.x / d,
-		                 q.y / d };
-		delta = (vec2_t) {
+		vec2_t delta = {q.x / d,
+						q.y / d};
+		delta = (vec2_t){
 			delta.x * 0.2588 - delta.y * 0.9659,
-			delta.x * 0.9659 + delta.y * 0.2588
-		};
-		if (0 <= d-r) {
-			delta = (vec2_t) {
+			delta.x * 0.9659 + delta.y * 0.2588};
+		if (0 <= d - r)
+		{
+			delta = (vec2_t){
 				-delta.x,
-				-delta.y
-			};
+				-delta.y};
 		}
 		positions[i].x += delta.x;
 		positions[i].y += delta.y;
@@ -122,15 +131,14 @@ static void ej_orbitar_c(emitter_t* emitter, vec2_t* start, vec2_t* end, float r
  * TP.
  */
 ejercicio_t ej_c = {
-	.posiciones_hecho = false,
-	.posiciones       = ej_posiciones_c,
+	.posiciones_hecho = true,
+	.posiciones = ej_posiciones_c,
 
-	.tamanios_hecho   = false,
-	.tamanios         = ej_tamanios_c,
+	.tamanios_hecho = false,
+	.tamanios = ej_tamanios_c,
 
-	.colores_hecho    = false,
-	.colores          = ej_colores_c,
+	.colores_hecho = false,
+	.colores = ej_colores_c,
 
-	.orbitar_hecho    = true,
-	.orbitar          = ej_orbitar_c
-};
+	.orbitar_hecho = true,
+	.orbitar = ej_orbitar_c};

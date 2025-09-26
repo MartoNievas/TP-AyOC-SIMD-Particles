@@ -4,12 +4,12 @@ TRUE  EQU 1
 FALSE EQU 0
 
 ; Offsets a utilizar durante la resolución del ejercicio.
-PARTICLES_COUNT_OFFSET    EQU 0 ; ¡COMPLETAR!
-PARTICLES_CAPACITY_OFFSET EQU 0 ; ¡COMPLETAR!
-PARTICLES_POS_OFFSET      EQU 0 ; ¡COMPLETAR!
-PARTICLES_COLOR_OFFSET    EQU 0 ; ¡COMPLETAR!
-PARTICLES_SIZE_OFFSET     EQU 0 ; ¡COMPLETAR!
-PARTICLES_VEL_OFFSET      EQU 0 ; ¡COMPLETAR!
+PARTICLES_COUNT_OFFSET    EQU 56 ; ¡COMPLETAR!
+PARTICLES_CAPACITY_OFFSET EQU 64; ¡COMPLETAR!
+PARTICLES_POS_OFFSET      EQU 72 ; ¡COMPLETAR!
+LES_COLOR_OFFSET    EQU 80 ; ¡COMPLETAR!
+PARTICLES_SIZE_OFFSET     EQU 88 ; ¡COMPLETAR!
+PARTICLES_VEL_OFFSET      EQU 96 ; ¡COMPLETAR!
 
 section .rodata
 
@@ -17,7 +17,7 @@ section .rodata
 ; TP.
 global ej_asm
 ej_asm:
-  .posiciones_hecho: db FALSE
+  .posiciones_hecho: db TRUE
   .tamanios_hecho:   db FALSE
   .colores_hecho:    db FALSE
   .orbitar_hecho:    db FALSE
@@ -46,20 +46,52 @@ section .text
 ; v := (v.x + g.x, v.y + g.y)
 ; ```
 ;
-; void ej_posiciones(emitter_t* emitter, vec2_t* gravedad);
+; void ej_posiciones(emitter_t* emitter, vec2_t* gravedad rsi);
 ej_posiciones_asm:
-	mov rcx, [rdi + PARTICLES_COUNT_OFFSET]
-	mov rdx, [rdi + PARTICLES_POS_OFFSET]
-	mov r8,  [rdi + PARTICLES_VEL_OFFSET]
+	.prologo: 
+	push rbp 
+	mov rbp, rsp 
 
-	xor r9, r9
+	
+	;nesecito tener los datos de gravedad en algun registro 
+	movq xmm0,[rsi]
+	movq xmm3,xmm0
+	pslldq xmm3,8
+	por xmm3,xmm0
+
+	mov rcx, [rdi + PARTICLES_COUNT_OFFSET] ;aqui tenemos la cantidad de particulas totales 
+	mov rdx, [rdi + PARTICLES_POS_OFFSET] ;tenemos el array de posiciones de las particulas 
+	mov r8,  [rdi + PARTICLES_VEL_OFFSET] ;tenemos el array de velocidades de las particulas 
+
+
+
+	;como vamos a usar SIMD y cada vector ocupa 8 bytes puedo procesar 2 al mismo tiempo 
+	xor r9, r9 ;int i = 0
 	jmp .check
 
 	.loop:
-		add rdi, 0 ; ¿Cantidad de partículas por loop?
+		add r9, 2 ; ¿Cantidad de partículas por loop?
 	.check:
-		cmp rdi, rcx
+		movdqu xmm1,[rdx] ;aqui tengo posicion x y x y
+		movdqu xmm2,[r8] ;aqui tengo la velocidad 
+
+		addps xmm1,xmm2
+		movdqu [rdx], xmm1 
+
+		;ahora tengo que buscar las velocidades y sumarle la gravedad 
+		movdqu xmm1,[r8]
+		addps xmm1, xmm3 ;suma la gravedad 
+
+		movdqu [r8],xmm1 
+
+		;ahora incrementamos rdx y r8 
+		add rdx, 16 
+		add r8,16
+		cmp r9, rcx
 		jb .loop
+
+	.epilogo: 
+	pop rbp 
 	ret
 
 ; Actualiza los tamaños de las partículas de acuerdo a la configuración dada.

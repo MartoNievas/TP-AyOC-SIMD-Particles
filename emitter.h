@@ -23,7 +23,8 @@ typedef struct SDL_Color SDL_Color;
  *
  * Ambas coordenadas son números flotantes de 32 bits.
  */
-typedef struct {
+typedef struct
+{
     float x, y;
 } vec2_t;
 
@@ -45,50 +46,51 @@ typedef struct {
  * - `particles_size`: Tamaño (r) de cada partícula.
  * - `particles_vel`: Velocidad (v_x, v_y) de cada partícula.
  */
-typedef struct {
+typedef struct
+{
     // Spawn config
-    vec2_t spawn_pos;
-    vec2_t spawn_pos_spread;
-    vec2_t spawn_vel;
-    vec2_t spawn_vel_spread;
-    float spawn_size;
-    float spawn_size_spread;
-    size_t spawn_colors_count;
-    const SDL_Color* spawn_colors;
+    vec2_t spawn_pos;              // 0
+    vec2_t spawn_pos_spread;       // 8
+    vec2_t spawn_vel;              // 16
+    vec2_t spawn_vel_spread;       // 24
+    float spawn_size;              // 32
+    float spawn_size_spread;       // 36
+    size_t spawn_colors_count;     // 40
+    const SDL_Color *spawn_colors; // 48
     // Particles
-    size_t     particles_count;
-    size_t     particles_capacity;
-    vec2_t*    particles_pos;
-    SDL_Color* particles_color;
-    float*     particles_size;
-    vec2_t*    particles_vel;
-} emitter_t;
+    size_t particles_count;     // 56
+    size_t particles_capacity;  // 64
+    vec2_t *particles_pos;      // 72
+    SDL_Color *particles_color; // 80
+    float *particles_size;      // 88
+    vec2_t *particles_vel;      // 96
+} emitter_t;                    // 104
 
 /**
  * Elimina las partículas innecesarias (muy chicas, muy transparentes, muy
  * lejanas) y las reemplaza por nuevas partículas. Crea un máximo de
  * `spawn_limit` partículas.
  */
-void emitter_respawn(emitter_t* emitter, size_t spawn_limit);
+void emitter_respawn(emitter_t *emitter, size_t spawn_limit);
 
 /**
  * Reemplaza todas las partículas por nuevas partículas.
  */
-void emitter_spawn_all(emitter_t* emitter);
+void emitter_spawn_all(emitter_t *emitter);
 
 /**
  * Crea un nuevo emisor de partículas que puede administrar hasta
  * `max_particles` partículas.
  */
-emitter_t* emitter_create(size_t max_particles);
+emitter_t *emitter_create(size_t max_particles);
 
 /**
  * Destruye un emisor de partículas y libera todos los recursos asociados a él.
  */
-void emitter_destroy(emitter_t* emitter);
+void emitter_destroy(emitter_t *emitter);
 
 /**
  * Elimina todas las partículas del emisor dado sin reemplazarlas por
  * partículas nuevas.
  */
-void emitter_clear_all(emitter_t* emitter);
+void emitter_clear_all(emitter_t *emitter);
