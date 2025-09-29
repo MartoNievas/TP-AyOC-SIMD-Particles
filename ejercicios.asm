@@ -5,9 +5,9 @@ FALSE EQU 0
 
 ; Offsets a utilizar durante la resolución del ejercicio.
 PARTICLES_COUNT_OFFSET    EQU 56 ; ¡COMPLETAR!
-PARTICLES_CAPACITY_OFFSET EQU 64; ¡COMPLETAR!
+PARTICLES_CAPACITY_OFFSET EQU 64 ; ¡COMPLETAR!
 PARTICLES_POS_OFFSET      EQU 72 ; ¡COMPLETAR!
-LES_COLOR_OFFSET    EQU 80 ; ¡COMPLETAR!
+PARTICLES_COLOR_OFFSET    EQU 80 ; ¡COMPLETAR!
 PARTICLES_SIZE_OFFSET     EQU 88 ; ¡COMPLETAR!
 PARTICLES_VEL_OFFSET      EQU 96 ; ¡COMPLETAR!
 
@@ -18,8 +18,8 @@ section .rodata
 global ej_asm
 ej_asm:
   .posiciones_hecho: db TRUE
-  .tamanios_hecho:   db FALSE
-  .colores_hecho:    db FALSE
+  .tamanios_hecho:   db TRUE
+  .colores_hecho:    db TRUE
   .orbitar_hecho:    db FALSE
   ALIGN 8
   .posiciones: dq ej_posiciones_asm
@@ -105,8 +105,56 @@ ej_posiciones_asm:
 ;   s := s - b
 ; ```
 ;
-; void ej_tamanios(emitter_t* emitter, float a, float b, float c);
+; void ej_tamanios(emitter_t* emitter->rdi , float a->xmm0, float b->xmm1, float c->xmm2);
 ej_tamanios_asm:
+	.prologo:
+	push rbp 
+	mov rbp,rsp 
+
+	;aqui tengo replicado el dato en todas las dword de los xmm
+	PSHUFD xmm0, xmm0, 0x00
+	PSHUFD xmm1, xmm1, 0x00
+	PSHUFD xmm2, xmm2, 0x00 
+
+	mov rsi, [rdi + PARTICLES_SIZE_OFFSET] ; aqui tenemos el array de tamanios de las particulas 
+	mov rdx, [rdi + PARTICLES_COUNT_OFFSET] ; aqui el contador de particulas 
+
+	xor r8,r8 ;i = 0
+	jmp .check
+
+	.loop: 
+	add r8,4 ;vamos a procesar de a 4 particulas 
+
+	.check: 
+	;ahora me traigo 4 tamanios 
+	movdqu xmm3,[rsi] ;aqui tengo 4 tamanios ahora debos aplicar las condiciones 
+	movdqu xmm4,xmm3 
+	mulps xmm4, xmm0 
+	subps xmm4, xmm1 
+
+	movdqu xmm5,xmm3 
+	subps xmm5,xmm1
+
+	;ahora nos quedamos con los resultados que nos sirven 
+
+	movdqu xmm6,xmm3 
+	CMPPS xmm6, xmm2, 0x05 ;aqui obtenemos la mascara para los que cumplen c <= s 
+
+	;ahora verificamos 
+	ANDPS xmm4,xmm6 
+	andnps xmm6,xmm5 
+	orps xmm4,xmm6 
+
+
+	movaps [rsi], xmm4
+
+	add rsi,16; como me traigo 4 floats avanzo 16 bytes 
+	cmp r8,rdx 
+	jb .loop
+
+	
+	.epilogo: 
+	pop rbp 
 	ret
 
 ; Actualiza los colores de las partículas de acuerdo al delta de color
@@ -129,8 +177,40 @@ ej_tamanios_asm:
 ;   A = 0
 ; ```
 ;
-; void ej_colores(emitter_t* emitter, SDL_Color a_restar);
+; void ej_colores(emitter_t* emitter->rdi, SDL_Color a_restar-> esi);
 ej_colores_asm:
+	.prologo:
+	push rbp 
+	mov rbp,rsp 
+
+	movd xmm0,esi 
+	;ahora lo extendemos 
+	PSHUFD xmm0,xmm0,0 
+	
+	mov rsi,[rdi + PARTICLES_COLOR_OFFSET]
+	mov rcx, [rdi + PARTICLES_COUNT_OFFSET]
+
+	xor r8,r8 
+	jmp .check
+
+	.loop: 
+	add r8,4 
+
+	.check: 
+	movdqu xmm1,[rsi] ;me traigo 4 particulas 
+
+
+	psubusb xmm1,xmm0
+
+	movdqu [rsi],xmm1
+
+	add rsi,16 
+	cmp r8,rcx
+	jb .loop 
+
+
+	.epilogo:
+	pop rbp 
 	ret
 
 ; Calcula un campo de fuerza y lo aplica a cada una de las partículas,
