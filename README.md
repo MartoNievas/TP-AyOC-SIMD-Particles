@@ -1,19 +1,6 @@
 # TP SIMD - 2do Cuatrimestre 2025
 ## Arquitectura y Organización del Computador
 
-|            | Comisión Furfaro | Comisión David |
-| --                       | -- | -- |
-| **Presentación** | 25/09/2025 | 29/09/2025 | 
-| **Entrega**      | 09/10/2025 | 13/10/2025 | 
-| **Reentrega**    | 30/10/2025 | 03/11/2025 | 
-
------------
-
-| <video src="https://github.com/user-attachments/assets/ed05ba57-d768-43dc-880f-e94ba0cd28ef"> | <video src="https://github.com/user-attachments/assets/bef09679-0774-41d9-9e88-c9a67ef397a4"> | <video src="https://github.com/user-attachments/assets/baa39902-d961-4d87-bb59-1250b4e71970"> |
-| -- | -- | -- |
-| <video src="https://github.com/user-attachments/assets/69a14677-176b-44a7-8012-3df450105dbb"> | <video src="https://github.com/user-attachments/assets/d537b56e-3932-4d57-a647-df986b10489b"> | <video src="https://github.com/user-attachments/assets/f73d41f3-4c17-4054-9c6d-20940f0ade49">
-
-
 En este trabajo vamos a implementar un pequeño sistema de partículas.
 Utilizaremos los sets de instrucciones SIMD disponibles en procesadores intel (SSE, SSE2, SSE3, AVX, etc).
 Aplicaremos lo visto en clase programando de manera vectorizada cada una de las manipulaciones relevantes.
