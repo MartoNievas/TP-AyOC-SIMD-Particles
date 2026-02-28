@@ -12,7 +12,10 @@ PARTICLES_SIZE_OFFSET     EQU 88 ; ¡COMPLETAR!
 PARTICLES_VEL_OFFSET      EQU 96 ; ¡COMPLETAR!
 
 section .rodata
-
+align 16
+cos15:   dd 0.2588, 0.2588, 0.2588, 0.2588
+sin15:   dd 0.9659, 0.9659, 0.9659, 0.9659
+signbit: dd 0x80000000, 0x80000000, 0x80000000, 0x80000000
 ; La descripción de lo hecho y lo por completar de la implementación en C del
 ; TP.
 global ej_asm
@@ -20,7 +23,7 @@ ej_asm:
   .posiciones_hecho: db TRUE
   .tamanios_hecho:   db TRUE
   .colores_hecho:    db TRUE
-  .orbitar_hecho:    db FALSE
+  .orbitar_hecho:    db TRUE 
   ALIGN 8
   .posiciones: dq ej_posiciones_asm
   .tamanios:   dq ej_tamanios_asm
@@ -223,5 +226,111 @@ ej_colores_asm:
 ; SIMD en lugar de operaciones escalares.
 ;
 ; void ej_orbitar(emitter_t* emitter, vec2_t* start, vec2_t* end, float r);
+; void ej_orbitar_asm(emitter_t *emitter, vec2_t *start, vec2_t *end, float r)
+; rdi = emitter, rsi = start, rdx = end, xmm0 = r
+
+global ej_orbitar_asm
+
 ej_orbitar_asm:
-	ret
+    push    rbp
+    mov     rbp, rsp
+    and     rsp, -16
+    sub     rsp, 64
+
+    mov     rcx, [rdi + PARTICLES_COUNT_OFFSET]
+    mov     r8,  [rdi + PARTICLES_POS_OFFSET]
+
+    test    rcx, rcx
+    jz      .done
+
+    ; ── ba = end - start ─────────────────────────────────────────────────────
+    vmovss  xmm1, [rsi]
+    vmovss  xmm2, [rsi + 4]
+    vmovss  xmm3, [rdx]
+    vmovss  xmm4, [rdx + 4]
+
+    vsubss  xmm3, xmm3, xmm1   ; ba.x
+    vsubss  xmm4, xmm4, xmm2   ; ba.y
+
+    vmulss  xmm5, xmm3, xmm3
+    vmulss  xmm6, xmm4, xmm4
+    vaddss  xmm5, xmm5, xmm6   ; ba_len2
+
+    ; Guardar escalares en stack
+    ; [rsp +  0] = r
+    ; [rsp +  4] = start.x
+    ; [rsp +  8] = start.y
+    ; [rsp + 12] = ba_len2
+    ; xmm3 = ba.x, xmm4 = ba.y  en registros
+    vmovss  [rsp + 0],  xmm0
+    vmovss  [rsp + 4],  xmm1
+    vmovss  [rsp + 8],  xmm2
+    vmovss  [rsp + 12], xmm5
+
+    xor     r9, r9
+
+.loop1:
+    cmp     r9, rcx
+    jge     .done
+
+    lea     rax, [r8 + r9*8]
+
+    vmovss  xmm6, [rax]          ; px
+    vmovss  xmm7, [rax + 4]      ; py
+
+    ; pa = p - start
+    vsubss  xmm8, xmm6, [rsp + 4]
+    vsubss  xmm9, xmm7, [rsp + 8]
+
+    ; h = dot(pa,ba) / ba_len2
+    vmulss  xmm10, xmm8, xmm3
+    vmulss  xmm11, xmm9, xmm4
+    vaddss  xmm10, xmm10, xmm11
+    vdivss  xmm10, xmm10, [rsp + 12]
+    vmaxss  xmm10, xmm10, [rel ceros]
+    vminss  xmm10, xmm10, [rel unos]
+
+    ; q = pa - h*ba
+    vmulss  xmm11, xmm10, xmm3
+    vmulss  xmm12, xmm10, xmm4
+    vsubss  xmm11, xmm8, xmm11   ; q.x
+    vsubss  xmm12, xmm9, xmm12   ; q.y
+
+    ; d = |q|
+    vmulss  xmm13, xmm11, xmm11
+    vmulss  xmm14, xmm12, xmm12
+    vaddss  xmm13, xmm13, xmm14
+    vsqrtss xmm13, xmm13, xmm13
+
+    ; delta = q / d
+    vdivss  xmm14, xmm11, xmm13
+    vdivss  xmm15, xmm12, xmm13
+
+    ; rotar 75°
+    vmulss  xmm8,  xmm14, [rel cos15]
+    vmulss  xmm9,  xmm15, [rel sin15]
+    vsubss  xmm8,  xmm8,  xmm9          ; rot.x
+
+    vmulss  xmm9,  xmm14, [rel sin15]
+    vmulss  xmm11, xmm15, [rel cos15]
+    vaddss  xmm9,  xmm9,  xmm11         ; rot.y
+
+    ; negar si (d - r) >= 0
+    vsubss   xmm11, xmm13, [rsp + 0]
+    vucomiss xmm11, [rel ceros]
+    jb       .no_negate
+    vxorps   xmm8, xmm8, [rel signbit]
+    vxorps   xmm9, xmm9, [rel signbit]
+.no_negate:
+    vaddss  xmm6, xmm6, xmm8
+    vaddss  xmm7, xmm7, xmm9
+    vmovss  [rax],     xmm6
+    vmovss  [rax + 4], xmm7
+
+    inc     r9
+    jmp     .loop1
+
+.done:
+    mov     rsp, rbp
+    pop     rbp
+    ret
